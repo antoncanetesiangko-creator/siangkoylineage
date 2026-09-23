@@ -1,0 +1,93 @@
+<?php
+
+session_start();
+
+if (isset($_SESSION['user_id'])) {
+    header("Location: ../dashboard/index.php");
+    exit;
+}
+
+$error = "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $username = $_POST["username"] ?? "";
+    $password = $_POST["password"] ?? "";
+
+    /*
+       Demo login.
+
+       Change these credentials before using
+       the system publicly.
+    */
+
+    if ($username === "admin" && $password === "admin123") {
+
+        $_SESSION["user_id"] = 1;
+        $_SESSION["username"] = "admin";
+
+        header("Location: ../dashboard/index.php");
+        exit;
+
+    } else {
+
+        $error = "Invalid username or password.";
+
+    }
+}
+
+?>
+
+<!DOCTYPE html>
+<html>
+<head>
+
+    <title>Siangko Lineage - Login</title>
+
+    <link rel="stylesheet"
+          href="../assets/css/style.css">
+
+</head>
+
+<body class="login-page">
+
+<div class="login-box">
+
+    <h1>Siangko Lineage</h1>
+
+    <p>Family History System</p>
+
+    <?php if ($error): ?>
+
+        <div class="error">
+            <?= htmlspecialchars($error) ?>
+        </div>
+
+    <?php endif; ?>
+
+    <form method="POST">
+
+        <input
+            type="text"
+            name="username"
+            placeholder="Username"
+            required
+        >
+
+        <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            required
+        >
+
+        <button type="submit">
+            Login
+        </button>
+
+    </form>
+
+</div>
+
+</body>
+</html>

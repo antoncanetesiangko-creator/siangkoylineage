@@ -1,0 +1,64 @@
+siangko_lineage/
+│
+├── config/
+│   └── database.php
+│
+├── auth/
+│   ├── login.php
+│   └── logout.php
+│
+├── dashboard/
+│   └── index.php
+│
+├── people/
+│   ├── add.php
+│   ├── edit.php
+│   ├── view.php
+│   ├── search.php
+│   └── delete.php
+│
+├── relationships/
+│   ├── parent_child.php
+│   ├── spouse.php
+│   └── relationship.php
+│
+├── tree/
+│   ├── index.php
+│   ├── descendants.php
+│   ├── ancestors.php
+│   └── relationship.php
+│
+├── families/
+│   ├── index.php
+│   └── view.php
+│
+├── events/
+│   ├── add.php
+│   └── view.php
+│
+├── media/
+│   ├── upload.php
+│   └── gallery.php
+│
+├── sources/
+│   ├── add.php
+│   └── view.php
+│
+├── reports/
+│   ├── family.php
+│   ├── ancestors.php
+│   └── descendants.php
+│
+├── api/
+│   ├── people.php
+│   ├── relationships.php
+│   └── tree.php
+│
+├── assets/
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   └── app.js
+│   └── images/
+│
+└── index.php

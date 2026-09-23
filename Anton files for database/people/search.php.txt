@@ -1,0 +1,358 @@
+<?php
+
+session_start();
+
+require_once "../config/database.php";
+
+$id = intval($_GET["id"] ?? 0);
+
+if ($id <= 0) {
+    die("Invalid person ID.");
+}
+
+$stmt = $pdo->prepare("
+    SELECT
+        p.*,
+        bp.place_name AS birth_place,
+        dp.place_name AS death_place
+    FROM people p
+
+    LEFT JOIN places bp
+        ON p.birth_place_id = bp.id
+
+    LEFT JOIN places dp
+        ON p.death_place_id = dp.id
+
+    WHERE p.id = ?
+");
+
+$stmt->execute([$id]);
+
+$person = $stmt->fetch();
+
+if (!$person) {
+    die("Person not found.");
+}
+
+$parentsStmt = $pdo->prepare("
+    SELECT
+        p.id,
+        p.first_name,
+        p.middle_name,
+        p.last_name,
+        p.sex,
+        r.relationship_type,
+        r.parent_role
+
+    FROM parent_child_relationships r
+
+    INNER JOIN people p
+        ON p.id = r.parent_id
+
+    WHERE r.child_id = ?
+
+    ORDER BY
+        FIELD(r.parent_role, 'Father', 'Mother', 'Parent', 'Unknown')
+");
+
+$parentsStmt->execute([$id]);
+
+$parents = $parentsStmt->fetchAll();
+
+$childrenStmt = $pdo->prepare("
+    SELECT
+        p.id,
+        p.first_name,
+        p.middle_name,
+        p.last_name,
+        p.sex,
+        r.relationship_type,
+        r.parent_role
+
+    FROM parent_child_relationships r
+
+    INNER JOIN people p
+        ON p.id = r.child_id
+
+    WHERE r.parent_id = ?
+
+    ORDER BY p.last_name, p.first_name
+");
+
+$childrenStmt->execute([$id]);
+
+$children = $childrenStmt->fetchAll();
+
+$mediaStmt = $pdo->prepare("
+    SELECT *
+    FROM media
+    WHERE person_id = ?
+    ORDER BY uploaded_at DESC
+");
+
+$mediaStmt->execute([$id]);
+
+$media = $mediaStmt->fetchAll();
+
+$storiesStmt = $pdo->prepare("
+    SELECT *
+    FROM family_stories
+    WHERE person_id = ?
+    ORDER BY created_at DESC
+");
+
+$storiesStmt->execute([$id]);
+
+$stories = $storiesStmt->fetchAll();
+
+$fullName = trim(
+    $person["first_name"] . " " .
+    ($person["middle_name"] ?? "") . " " .
+    ($person["last_name"] ?? "")
+);
+
+?>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title><?= htmlspecialchars($fullName) ?></title>
+
+<link rel="stylesheet"
+      href="../assets/css/style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+<a href="search.php">
+    ← Back to People
+</a>
+
+<div class="profile">
+
+    <div class="profile-photo">
+
+        <?php if ($person["photo"]): ?>
+
+            <img
+                src="../<?= htmlspecialchars($person["photo"]) ?>"
+                alt="Photo"
+            >
+
+        <?php else: ?>
+
+            <div class="no-photo">
+                No Photo
+            </div>
+
+        <?php endif; ?>
+
+    </div>
+
+    <div>
+
+        <h1>
+            <?= htmlspecialchars($fullName) ?>
+        </h1>
+
+        <?php if ($person["nickname"]): ?>
+
+            <p>
+                Nickname:
+                <?= htmlspecialchars($person["nickname"]) ?>
+            </p>
+
+        <?php endif; ?>
+
+        <p>
+            Sex:
+            <?= htmlspecialchars($person["sex"]) ?>
+        </p>
+
+        <p>
+            Born:
+            <?= $person["birth_date"]
+                ? date("F d, Y", strtotime($person["birth_date"]))
+                : "Unknown" ?>
+        </p>
+
+        <?php if ($person["birth_place"]): ?>
+
+            <p>
+                Birthplace:
+                <?= htmlspecialchars($person["birth_place"]) ?>
+            </p>
+
+        <?php endif; ?>
+
+        <?php if ($person["is_deceased"]): ?>
+
+            <p>
+                Died:
+                <?= $person["death_date"]
+                    ? date("F d, Y", strtotime($person["death_date"]))
+                    : "Date unknown" ?>
+            </p>
+
+        <?php endif; ?>
+
+    </div>
+
+</div>
+
+<hr>
+
+<h2>Parents</h2>
+
+<?php if (!$parents): ?>
+
+<p>No parents recorded.</p>
+
+<?php else: ?>
+
+<ul>
+
+<?php foreach ($parents as $parent): ?>
+
+<li>
+
+<a href="view.php?id=<?= $parent["id"] ?>">
+
+<?= htmlspecialchars(
+    trim(
+        $parent["first_name"] . " " .
+        ($parent["middle_name"] ?? "") . " " .
+        ($parent["last_name"] ?? "")
+    )
+) ?>
+
+</a>
+
+—
+
+<?= htmlspecialchars($parent["parent_role"]) ?>
+
+</li>
+
+<?php endforeach; ?>
+
+</ul>
+
+<?php endif; ?>
+
+
+<h2>Children</h2>
+
+<?php if (!$children): ?>
+
+<p>No children recorded.</p>
+
+<?php else: ?>
+
+<ul>
+
+<?php foreach ($children as $child): ?>
+
+<li>
+
+<a href="view.php?id=<?= $child["id"] ?>">
+
+<?= htmlspecialchars(
+    trim(
+        $child["first_name"] . " " .
+        ($child["middle_name"] ?? "") . " " .
+        ($child["last_name"] ?? "")
+    )
+) ?>
+
+</a>
+
+</li>
+
+<?php endforeach; ?>
+
+</ul>
+
+<?php endif; ?>
+
+
+<h2>Biography</h2>
+
+<div class="biography">
+
+<?= nl2br(
+    htmlspecialchars(
+        $person["biography"] ?? "No biography recorded."
+    )
+) ?>
+
+</div>
+
+
+<h2>Photos / Documents / Certificates</h2>
+
+<div class="media-grid">
+
+<?php foreach ($media as $item): ?>
+
+<div class="media-item">
+
+<?php if ($item["media_type"] === "Photo"): ?>
+
+<img
+    src="../<?= htmlspecialchars($item["file_path"]) ?>"
+    alt="<?= htmlspecialchars($item["title"] ?? "Photo") ?>"
+>
+
+<?php else: ?>
+
+<a
+    href="../<?= htmlspecialchars($item["file_path"]) ?>"
+    target="_blank"
+>
+
+<?= htmlspecialchars(
+    $item["title"] ?? $item["media_type"]
+) ?>
+
+</a>
+
+<?php endif; ?>
+
+</div>
+
+<?php endforeach; ?>
+
+</div>
+
+
+<h2>Family Stories</h2>
+
+<?php foreach ($stories as $story): ?>
+
+<article class="story">
+
+<h3>
+    <?= htmlspecialchars($story["title"]) ?>
+</h3>
+
+<p>
+<?= nl2br(
+    htmlspecialchars($story["story"])
+) ?>
+</p>
+
+</article>
+
+<?php endforeach; ?>
+
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,129 @@
+<?php
+
+session_start();
+
+if (!isset($_SESSION["user_id"])) {
+    header("Location: ../auth/login.php");
+    exit;
+}
+
+require_once "../config/database.php";
+
+$totalPeople = $pdo
+    ->query("SELECT COUNT(*) FROM people")
+    ->fetchColumn();
+
+$totalFamilies = $pdo
+    ->query("SELECT COUNT(*) FROM unions")
+    ->fetchColumn();
+
+$totalRelationships = $pdo
+    ->query("SELECT COUNT(*) FROM parent_child_relationships")
+    ->fetchColumn();
+
+$totalStories = $pdo
+    ->query("SELECT COUNT(*) FROM family_stories")
+    ->fetchColumn();
+
+?>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Dashboard - Siangko Lineage</title>
+
+    <link rel="stylesheet"
+          href="../assets/css/style.css">
+
+</head>
+
+<body>
+
+<header class="topbar">
+
+    <h1>Siangko Lineage</h1>
+
+    <nav>
+
+        <a href="../dashboard/index.php">
+            Dashboard
+        </a>
+
+        <a href="../people/search.php">
+            People
+        </a>
+
+        <a href="../tree/index.php">
+            Family Tree
+        </a>
+
+        <a href="../families/index.php">
+            Families
+        </a>
+
+        <a href="../events/view.php">
+            Events
+        </a>
+
+        <a href="../media/gallery.php">
+            Media
+        </a>
+
+        <a href="../sources/view.php">
+            Sources
+        </a>
+
+        <a href="../auth/logout.php">
+            Logout
+        </a>
+
+    </nav>
+
+</header>
+
+<main class="container">
+
+    <h2>Family Dashboard</h2>
+
+    <div class="cards">
+
+        <div class="card">
+
+            <h3><?= $totalPeople ?></h3>
+
+            <p>People</p>
+
+        </div>
+
+        <div class="card">
+
+            <h3><?= $totalFamilies ?></h3>
+
+            <p>Families</p>
+
+        </div>
+
+        <div class="card">
+
+            <h3><?= $totalRelationships ?></h3>
+
+            <p>Parent/Child Relationships</p>
+
+        </div>
+
+        <div class="card">
+
+            <h3><?= $totalStories ?></h3>
+
+            <p>Family Stories</p>
+
+        </div>
+
+    </div>
+
+</main>
+
+</body>
+</html>

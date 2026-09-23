@@ -1,0 +1,101 @@
+<?php
+
+require_once "../config/database.php";
+
+$people = $pdo->query("
+    SELECT
+        id,
+        first_name,
+        middle_name,
+        last_name
+    FROM people
+    ORDER BY last_name, first_name
+")->fetchAll();
+
+?>
+
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<title>Family Tree</title>
+
+<link rel="stylesheet"
+      href="../assets/css/style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Siangko Family Tree</h1>
+
+<p>Select a family member:</p>
+
+<table>
+
+<thead>
+
+<tr>
+<th>Name</th>
+<th>Actions</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+<?php foreach ($people as $person): ?>
+
+<?php
+
+$name = trim(
+    $person["first_name"] . " " .
+    ($person["middle_name"] ?? "") . " " .
+    ($person["last_name"] ?? "")
+);
+
+?>
+
+<tr>
+
+<td>
+<?= htmlspecialchars($name) ?>
+</td>
+
+<td>
+
+<a href="descendants.php?id=<?= $person["id"] ?>">
+Descendants
+</a>
+
+|
+
+<a href="ancestors.php?id=<?= $person["id"] ?>">
+Ancestors
+</a>
+
+|
+
+<a href="../people/view.php?id=<?= $person["id"] ?>">
+Profile
+</a>
+
+</td>
+
+</tr>
+
+<?php endforeach; ?>
+
+</tbody>
+
+</table>
+
+</div>
+
+</body>
+
+</html>

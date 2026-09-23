@@ -1,0 +1,245 @@
+<?php
+
+session_start();
+
+require_once "../config/database.php";
+
+$message = "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $parent_id = intval($_POST["parent_id"]);
+    $child_id = intval($_POST["child_id"]);
+
+    $relationship_type =
+        $_POST["relationship_type"] ?? "Biological";
+
+    $parent_role =
+        $_POST["parent_role"] ?? "Unknown";
+
+    $confidence =
+        $_POST["confidence"] ?? "Confirmed";
+
+    $notes =
+        trim($_POST["notes"] ?? "");
+
+    if ($parent_id === $child_id) {
+
+        $message = "A person cannot be their own parent.";
+
+    } else {
+
+        try {
+
+            $stmt = $pdo->prepare("
+                INSERT INTO parent_child_relationships
+                (
+                    parent_id,
+                    child_id,
+                    relationship_type,
+                    parent_role,
+                    confidence,
+                    notes
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+            ");
+
+            $stmt->execute([
+                $parent_id,
+                $child_id,
+                $relationship_type,
+                $parent_role,
+                $confidence,
+                $notes ?: null
+            ]);
+
+            $message = "Parent-child relationship saved.";
+
+        } catch (PDOException $e) {
+
+            $message = "Relationship could not be saved.";
+
+        }
+    }
+}
+
+$people = $pdo->query("
+    SELECT
+        id,
+        first_name,
+        middle_name,
+        last_name
+    FROM people
+    ORDER BY last_name, first_name
+")->fetchAll();
+
+?>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Parent Child Relationship</title>
+
+<link rel="stylesheet"
+      href="../assets/css/style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Add Parent / Child Relationship</h1>
+
+<?php if ($message): ?>
+
+<div class="message">
+
+<?= htmlspecialchars($message) ?>
+
+</div>
+
+<?php endif; ?>
+
+<form method="POST">
+
+<label>Parent</label>
+
+<select name="parent_id" required>
+
+<option value="">
+Select parent
+</option>
+
+<?php foreach ($people as $person): ?>
+
+<option value="<?= $person["id"] ?>">
+
+<?= htmlspecialchars(
+    trim(
+        $person["first_name"] . " " .
+        ($person["middle_name"] ?? "") . " " .
+        ($person["last_name"] ?? "")
+    )
+) ?>
+
+</option>
+
+<?php endforeach; ?>
+
+</select>
+
+
+<label>Child</label>
+
+<select name="child_id" required>
+
+<option value="">
+Select child
+</option>
+
+<?php foreach ($people as $person): ?>
+
+<option value="<?= $person["id"] ?>">
+
+<?= htmlspecialchars(
+    trim(
+        $person["first_name"] . " " .
+        ($person["middle_name"] ?? "") . " " .
+        ($person["last_name"] ?? "")
+    )
+) ?>
+
+</option>
+
+<?php endforeach; ?>
+
+</select>
+
+
+<label>Relationship</label>
+
+<select name="relationship_type">
+
+<option value="Biological">
+Biological
+</option>
+
+<option value="Adoptive">
+Adoptive
+</option>
+
+<option value="Step">
+Step
+</option>
+
+<option value="Unknown">
+Unknown
+</option>
+
+</select>
+
+
+<label>Parent Role</label>
+
+<select name="parent_role">
+
+<option value="Father">
+Father
+</option>
+
+<option value="Mother">
+Mother
+</option>
+
+<option value="Parent">
+Parent
+</option>
+
+<option value="Unknown">
+Unknown
+</option>
+
+</select>
+
+
+<label>Confidence</label>
+
+<select name="confidence">
+
+<option value="Confirmed">
+Confirmed
+</option>
+
+<option value="Probable">
+Probable
+</option>
+
+<option value="Possible">
+Possible
+</option>
+
+<option value="Unknown">
+Unknown
+</option>
+
+</select>
+
+
+<label>Notes</label>
+
+<textarea name="notes"></textarea>
+
+<button type="submit">
+Save Relationship
+</button>
+
+</form>
+
+</div>
+
+</body>
+
+</html>

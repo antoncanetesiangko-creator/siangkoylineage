@@ -1,0 +1,181 @@
+<?php
+
+session_start();
+
+if (!isset($_SESSION["user_id"])) {
+    header("Location: ../auth/login.php");
+    exit;
+}
+
+require_once "../config/database.php";
+
+$message = "";
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $first_name = trim($_POST["first_name"]);
+    $middle_name = trim($_POST["middle_name"] ?? "");
+    $last_name = trim($_POST["last_name"] ?? "");
+    $nickname = trim($_POST["nickname"] ?? "");
+
+    $sex = $_POST["sex"] ?? "Unknown";
+
+    $birth_date = $_POST["birth_date"] ?: null;
+    $death_date = $_POST["death_date"] ?: null;
+
+    $is_deceased = isset($_POST["is_deceased"]) ? 1 : 0;
+
+    $biography = trim($_POST["biography"] ?? "");
+    $notes = trim($_POST["notes"] ?? "");
+
+    $stmt = $pdo->prepare("
+        INSERT INTO people
+        (
+            first_name,
+            middle_name,
+            last_name,
+            nickname,
+            sex,
+            birth_date,
+            death_date,
+            is_deceased,
+            biography,
+            notes
+        )
+        VALUES
+        (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+        )
+    ");
+
+    $stmt->execute([
+        $first_name,
+        $middle_name ?: null,
+        $last_name ?: null,
+        $nickname ?: null,
+        $sex,
+        $birth_date,
+        $death_date,
+        $is_deceased,
+        $biography ?: null,
+        $notes ?: null
+    ]);
+
+    $newId = $pdo->lastInsertId();
+
+    header("Location: view.php?id=" . $newId);
+    exit;
+}
+
+?>
+
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<title>Add Person</title>
+
+<link rel="stylesheet"
+      href="../assets/css/style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Add Family Member</h1>
+
+<form method="POST">
+
+<label>First Name</label>
+
+<input
+    type="text"
+    name="first_name"
+    required
+>
+
+<label>Middle Name</label>
+
+<input
+    type="text"
+    name="middle_name"
+>
+
+<label>Last Name</label>
+
+<input
+    type="text"
+    name="last_name"
+>
+
+<label>Nickname</label>
+
+<input
+    type="text"
+    name="nickname"
+>
+
+<label>Sex</label>
+
+<select name="sex">
+
+<option value="Unknown">
+    Unknown
+</option>
+
+<option value="Male">
+    Male
+</option>
+
+<option value="Female">
+    Female
+</option>
+
+</select>
+
+<label>Birth Date</label>
+
+<input
+    type="date"
+    name="birth_date"
+>
+
+<label>Death Date</label>
+
+<input
+    type="date"
+    name="death_date"
+>
+
+<label>
+
+<input
+    type="checkbox"
+    name="is_deceased"
+>
+
+Deceased
+
+</label>
+
+<label>Biography</label>
+
+<textarea name="biography"></textarea>
+
+<label>Notes</label>
+
+<textarea name="notes"></textarea>
+
+<button type="submit">
+    Save Person
+</button>
+
+</form>
+
+</div>
+
+</body>
+</html>

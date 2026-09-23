@@ -1,0 +1,13 @@
+19. The important relationship between your folders and tables
+System folder	Main database tables
+people/	people, person_names, places
+relationships/	parent_child_relationships, unions, union_members
+tree/	people, parent_child_relationships
+families/	unions, union_members, people
+events/	events, person_events, places
+media/	media
+sources/	sources, relationship_sources
+reports/	All relevant tables
+api/	All relevant tables
+dashboard/	Counts from all major tables
+auth/	Session/login system

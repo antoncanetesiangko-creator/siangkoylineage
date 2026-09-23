@@ -1,0 +1,340 @@
+CREATE DATABASE IF NOT EXISTS siangko_lineage
+CHARACTER SET utf8mb4
+COLLATE utf8mb4_unicode_ci;
+
+USE siangko_lineage;
+
+CREATE TABLE places (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    place_name VARCHAR(255) NOT NULL,
+    barangay VARCHAR(150) NULL,
+    municipality VARCHAR(150) NULL,
+    province VARCHAR(150) NULL,
+    country VARCHAR(150) NULL,
+    latitude DECIMAL(10,7) NULL,
+    longitude DECIMAL(10,7) NULL,
+    notes TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE people (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100) NULL,
+    last_name VARCHAR(100) NULL,
+    nickname VARCHAR(100) NULL,
+
+    sex ENUM('Male','Female','Unknown')
+        DEFAULT 'Unknown',
+
+    birth_date DATE NULL,
+    death_date DATE NULL,
+
+    is_deceased BOOLEAN NOT NULL DEFAULT FALSE,
+
+    birth_place_id BIGINT UNSIGNED NULL,
+    death_place_id BIGINT UNSIGNED NULL,
+
+    biography TEXT NULL,
+    notes TEXT NULL,
+    photo VARCHAR(255) NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    INDEX idx_name (last_name, first_name),
+    INDEX idx_birth_date (birth_date),
+    INDEX idx_death_date (death_date),
+
+    CONSTRAINT fk_people_birth_place
+        FOREIGN KEY (birth_place_id)
+        REFERENCES places(id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT fk_people_death_place
+        FOREIGN KEY (death_place_id)
+        REFERENCES places(id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE parent_child_relationships (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    parent_id BIGINT UNSIGNED NOT NULL,
+    child_id BIGINT UNSIGNED NOT NULL,
+
+    relationship_type ENUM(
+        'Biological',
+        'Adoptive',
+        'Step',
+        'Unknown'
+    ) DEFAULT 'Biological',
+
+    parent_role ENUM(
+        'Father',
+        'Mother',
+        'Parent',
+        'Unknown'
+    ) DEFAULT 'Unknown',
+
+    confidence ENUM(
+        'Confirmed',
+        'Probable',
+        'Possible',
+        'Unknown'
+    ) DEFAULT 'Confirmed',
+
+    notes TEXT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (parent_id)
+        REFERENCES people(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (child_id)
+        REFERENCES people(id)
+        ON DELETE CASCADE,
+
+    UNIQUE(parent_id, child_id, parent_role),
+
+    INDEX idx_parent(parent_id),
+    INDEX idx_child(child_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE unions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    union_type ENUM(
+        'Marriage',
+        'Partnership',
+        'Unknown'
+    ) DEFAULT 'Marriage',
+
+    start_date DATE NULL,
+    end_date DATE NULL,
+
+    status ENUM(
+        'Active',
+        'Ended',
+        'Widowed',
+        'Divorced',
+        'Unknown'
+    ) DEFAULT 'Unknown',
+
+    place_id BIGINT UNSIGNED NULL,
+
+    notes TEXT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (place_id)
+        REFERENCES places(id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE union_members (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    union_id BIGINT UNSIGNED NOT NULL,
+    person_id BIGINT UNSIGNED NOT NULL,
+
+    role ENUM(
+        'Spouse',
+        'Partner',
+        'Unknown'
+    ) DEFAULT 'Spouse',
+
+    FOREIGN KEY (union_id)
+        REFERENCES unions(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (person_id)
+        REFERENCES people(id)
+        ON DELETE CASCADE,
+
+    UNIQUE(union_id, person_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE sources (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    title VARCHAR(255) NOT NULL,
+
+    source_type ENUM(
+        'Family Document',
+        'Birth Certificate',
+        'Marriage Certificate',
+        'Death Certificate',
+        'Interview',
+        'Photo',
+        'Book',
+        'Website',
+        'Other'
+    ) DEFAULT 'Other',
+
+    author VARCHAR(255) NULL,
+    publication_date DATE NULL,
+    description TEXT NULL,
+    file_path VARCHAR(500) NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE TABLE relationship_sources (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    relationship_id BIGINT UNSIGNED NOT NULL,
+    source_id BIGINT UNSIGNED NOT NULL,
+
+    notes TEXT NULL,
+
+    FOREIGN KEY (relationship_id)
+        REFERENCES parent_child_relationships(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (source_id)
+        REFERENCES sources(id)
+        ON DELETE CASCADE,
+
+    UNIQUE(relationship_id, source_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    event_type ENUM(
+        'Birth',
+        'Baptism',
+        'Marriage',
+        'Death',
+        'Burial',
+        'Migration',
+        'Residence',
+        'Other'
+    ) NOT NULL,
+
+    event_date DATE NULL,
+
+    place_id BIGINT UNSIGNED NULL,
+
+    description TEXT NULL,
+
+    source_id BIGINT UNSIGNED NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (place_id)
+        REFERENCES places(id)
+        ON DELETE SET NULL,
+
+    FOREIGN KEY (source_id)
+        REFERENCES sources(id)
+        ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE person_events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    person_id BIGINT UNSIGNED NOT NULL,
+    event_id BIGINT UNSIGNED NOT NULL,
+
+    role VARCHAR(100) NULL,
+
+    FOREIGN KEY (person_id)
+        REFERENCES people(id)
+        ON DELETE CASCADE,
+
+    FOREIGN KEY (event_id)
+        REFERENCES events(id)
+        ON DELETE CASCADE,
+
+    UNIQUE(person_id, event_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE person_names (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    person_id BIGINT UNSIGNED NOT NULL,
+
+    name_type ENUM(
+        'Birth',
+        'Married',
+        'Maiden',
+        'Nickname',
+        'Alias',
+        'Other'
+    ) NOT NULL,
+
+    first_name VARCHAR(100) NULL,
+    middle_name VARCHAR(100) NULL,
+    last_name VARCHAR(100) NULL,
+
+    is_primary BOOLEAN DEFAULT FALSE,
+
+    notes TEXT NULL,
+
+    FOREIGN KEY (person_id)
+        REFERENCES people(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE media (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    person_id BIGINT UNSIGNED NULL,
+
+    media_type ENUM(
+        'Photo',
+        'Document',
+        'Certificate',
+        'Video',
+        'Other'
+    ) NOT NULL,
+
+    file_path VARCHAR(500) NOT NULL,
+    title VARCHAR(255) NULL,
+    description TEXT NULL,
+    date_taken DATE NULL,
+
+    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (person_id)
+        REFERENCES people(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE family_stories (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    person_id BIGINT UNSIGNED NULL,
+
+    title VARCHAR(255) NOT NULL,
+    story TEXT NOT NULL,
+    author_name VARCHAR(255) NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (person_id)
+        REFERENCES people(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE audit_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    user_id BIGINT UNSIGNED NULL,
+
+    action VARCHAR(100) NOT NULL,
+    table_name VARCHAR(100) NULL,
+    record_id BIGINT UNSIGNED NULL,
+
+    old_data JSON NULL,
+    new_data JSON NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
